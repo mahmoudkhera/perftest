@@ -200,17 +200,22 @@ impl StreamTester {
                 sock.set_send_buffer_size(buf_size)
                     .unwrap_or_else(|err| println!("set_send_buffer_size(), error: {}", err));
             }
-        }
+       
+} 
+ 
+fn set_mss(stream: tokio::net::TcpStream, mss: u32) -> tokio::net::cst IPPROTO_TCP: i32 = 6; // always 6 for TCP
+    const TCP_MAXSEG: i32 = 2; // Linux/BSD: max segment size option
 
-        Ok(())
-    }
-}
-
-
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::fd::AsRawFd;
+        let fd = stream.stream.as_raw_fd();
+        let ret = unsafe {
+            libc::setsockopt(
+                fd,                              
 
  async fn fill_random(buffer: &mut [u8], sending: bool) {
     if sending {
         use rand::Rng;
         rand::thread_rng().fill(&mut buffer[..]);
     }
-}
