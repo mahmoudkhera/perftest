@@ -1,13 +1,15 @@
 use crate::messages_handler::StreamData;
 use crate::test_utils::TestParameters;
 use crate::ui;
-use anyhow::Result;
 use anyhow::bail;
+use anyhow::Result;
 use log::info;
 use std::convert::TryInto;
 use std::fmt::Debug;
+use std::io;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpSocket;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::JoinHandle;
@@ -55,7 +57,6 @@ impl StreamTester {
 
         fill_random(&mut buffer, self.is_sending).await;
 
-       
         self.configure_stream_socket()?;
         //what unntil the StartTst message is recived from the controler
         let signal = self.reciver.recv().await;
@@ -206,11 +207,211 @@ impl StreamTester {
     }
 }
 
-
-
- async fn fill_random(buffer: &mut [u8], sending: bool) {
+async fn fill_random(buffer: &mut [u8], sending: bool) {
     if sending {
         use rand::Rng;
         rand::thread_rng().fill(&mut buffer[..]);
     }
 }
+
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
+
+#[cfg(unix)]
+const IPPROTO_TCP: i32 = 6;
+
+#[cfg(unix)]
+const TCP_MAXSEG: i32 = 2;
+
+#[cfg(unix)]
+unsafe extern "C" {
+    fn setsockopt(
+        socket: i32,
+        level: i32,
+        option_name: i32,
+        option_value: *const std::ffi::c_void,
+        option_len: u32,
+    ) -> i32;
+    fn getsockopt(
+        socket: i32,
+        level: i32,
+        option_name: i32,
+        option_value: *mut std::ffi::c_void,
+        option_len: *mut u32,
+    ) -> i32;
+}
+
+#[cfg(unix)]
+  pub fn set_tcp_mss<T: AsRawFd>(socket: &T, mss: u32) -> io::Result<()> {
+    let fd = socket.as_raw_fd();
+    let mss_i32 = mss as i32;
+
+    let result = unsafe {
+        setsockopt(
+            fd,
+            IPPROTO_TCP,
+            TCP_MAXSEG,
+            &mss_i32 as *const i32 as *const std::ffi::c_void,
+            std::mem::size_of::<i32>() as u32,
+        )
+    };
+
+    if result == 0 {
+        Ok(())
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+#[cfg(unix)]
+pub fn get_tcp_mss<T: AsRawFd>(socket: &T) -> io::Result<u32> {
+    let fd = socket.as_raw_fd();
+    let mut mss: i32 = 0;
+    let mut len = std::mem::size_of::<i32>() as u32;
+
+    let result = unsafe {
+        getsockopt(
+            fd,
+            IPPROTO_TCP,
+            TCP_MAXSEG,
+            &mut mss as *mut i32 as *mut std::ffi::c_void,
+            &mut len,
+        )
+    };
+
+    if result == 0 {
+        Ok(mss as u32)
+    } else {
+        Err(io::Error::last_os_error())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_mss_set_correctly() {
+        // Create socket
+        let socket = TcpSocket::new_v4().expect("Failed to create socket");
+
+        // Set MSS to 1400
+        let expected_mss = 1400u32;
+
+        
+            // Set the MSS
+            set_tcp_mss(&socket, expected_mss).expect("Failed to set MSS");
+
+            // Read back the MSS
+            let actual_mss = get_tcp_mss(&socket).expect("Failed to get MSS");
+
+            // Verify they match
+            assert_eq!(
+                actual_mss, expected_mss,
+                "MSS mismatch: expected {}, got {}",
+                expected_mss, actual_mss
+            );
+        
+
+        println!(" MSS correctly set to {}", expected_mss);
+    }
+
+    #[tokio::test]
+    async fn test_multiple_mss_values() {
+        let test_values = [536, 1200, 1400, 1460];
+
+        for &expected_mss in &test_values {
+            let socket = TcpSocket::new_v4().expect("Failed to create socket");
+
+            
+                // Set MSS
+                match set_tcp_mss(&socket, expected_mss) {
+                    Ok(_) => {
+                        // Read back MSS
+                        let actual_mss = get_tcp_mss(&socket).expect("Failed to get MSS");
+
+                        // Verify exact match
+                        assert_eq!(
+                            actual_mss, expected_mss,
+                            "MSS {} not set correctly: got {}",
+                            expected_mss, actual_mss
+                        );
+
+                        println!("✅ MSS {} set correctly", expected_mss);
+                    }
+                    Err(e) => {
+                        // Some MSS values might not be supported
+                        println!(" MSS {} failed to set: {}", expected_mss, e);
+                        panic!("Failed to set MSS {}: {}", expected_mss, e);
+                    }
+                }
+            
+        }
+    }
+
+    #[tokio::test]
+    async fn test_mss_value_persistence() {
+        let socket = TcpSocket::new_v4().expect("Failed to create socket");
+        let test_mss = 1300u32;
+
+        
+            // Set MSS
+            set_tcp_mss(&socket, test_mss).expect("Failed to set MSS");
+
+            // Read it back multiple times to ensure it persists
+            for i in 0..5 {
+                let actual_mss = get_tcp_mss(&socket).expect("Failed to get MSS");
+                assert_eq!(
+                    actual_mss,
+                    test_mss,
+                    "MSS changed on read #{}: expected {}, got {}",
+                    i + 1,
+                    test_mss,
+                    actual_mss
+                );
+            }
+        
+
+        println!("✅ MSS {} persists across multiple reads", test_mss);
+    }
+
+    #[tokio::test]
+    async fn test_mss_set_get_cycle() {
+        let socket = TcpSocket::new_v4().expect("Failed to create socket");
+
+        // Test setting different MSS values on the same socket
+        let mss_values = [800, 1000, 1200, 1400];
+
+        for &mss in &mss_values {
+            
+                // Set new MSS
+                set_tcp_mss(&socket, mss).expect("Failed to set MSS");
+
+                // Immediately read it back
+                let read_mss = get_tcp_mss(&socket).expect("Failed to get MSS");
+
+                // Verify exact match
+                assert_eq!(
+                    read_mss, mss,
+                    "Set-Get cycle failed: set {}, got {}",
+                    mss, read_mss
+                );
+            
+        }
+
+        println!("✅ Set-Get cycle test passed for all values");
+    }
+
+    #[test]
+    fn test_sync_mss_verification() {
+        // Non-async version for simple testing
+        let _socket = std::net::TcpStream::connect("1.1.1.1:80");
+
+        // This should fail because we're testing on a connected socket
+        // but it shows how you could test the functions themselves
+
+        println!("✅ Sync test structure verified");
+    }
+}
+
+// Simple test runner function

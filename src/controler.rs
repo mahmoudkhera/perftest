@@ -4,7 +4,7 @@ use std::time::Duration;
 use crate::messages_handler::{
     ClientMessage, ServerMessage, TestResults, read_message, send_message,
 };
-use crate::tcptest::{StreamHandle, StreamMessage, StreamTester};
+use crate::tcptest::{StreamHandle, StreamMessage, StreamTester, get_tcp_mss, set_tcp_mss};
 use crate::test_utils::{Direction, Role};
 use crate::ui;
 use crate::{
@@ -13,7 +13,7 @@ use crate::{
 };
 use anyhow::{Context, Result, anyhow};
 use log::{debug, info, warn};
-use tokio::net::TcpStream;
+use tokio::net::{TcpSocket, TcpStream};
 use tokio::select;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tokio::time::timeout;
@@ -200,7 +200,7 @@ impl Controller {
         info!("Finalizing test and exchanging results");
 
         // Terminate all streams
-        // ask all the streams to terminate 
+        // ask all the streams to terminate
         self.broadcast_to_streams(StreamMessage::Terminate);
 
         // Collect and exchange results
@@ -236,6 +236,18 @@ impl Controller {
     async fn accept_stream(&mut self, stream: TcpStream) -> Result<()> {
         debug_assert_eq!(self.test.role, Role::Server);
 
+
+
+
+
+
+        if let Some(mss) = self.test.params.mss {
+            set_tcp_mss(&stream, mss as u32)?;
+
+            let socket_mss = get_tcp_mss(&stream)?;
+            println!("mss {}   socket_mss {}", mss, socket_mss);
+        }
+
         let total_needed = self.calculate_total_streams();
         println!("total streams {}", total_needed);
         let current_count = self.test.streams.len();
@@ -263,8 +275,20 @@ impl Controller {
             .ok_or_else(|| anyhow!("Client address not set"))?;
 
         debug!("Opening data stream to {}", address);
+
+
+        let test_socket=TcpSocket::new_v4()?;
+
+          if let Some(mss) = self.test.params.mss {
+           set_tcp_mss(&test_socket, mss as u32)?;
+
+            let socket_mss = get_tcp_mss(&test_socket)?;
+            println!("mss {}   socket_mss {}", mss, socket_mss);
+        }
+
         
-        let mut data_stream = TcpStream::connect(address).await?;
+
+        let mut data_stream = test_socket.connect(address.parse().unwrap()).await?;
 
         // client send the cookie again throug the data stream
         //and whait from the server to check if the data stream is opened

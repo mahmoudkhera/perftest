@@ -1,7 +1,7 @@
 use crate::cli::Commands;
 use crate::controler::{Controller, ControllerMessage};
 use crate::messages_handler::{read_message, send_message, ClientMessage, ErrorControl, ServerMessage, State};
-use crate::test_utils::Test;
+use crate::test_utils::{Test};
 use crate::test_utils::{Role, read_test_parameters};
 use crate::ui;
 use anyhow::{Context, Result, anyhow};
@@ -26,11 +26,13 @@ pub async fn run_server(commands: &Commands) -> Result<()> {
 
     let mut server_state = ServerState::new();
 
-    while let Ok((control_socket, _)) = listener.accept().await {
-        let peer = peer_to_string(&control_socket);
+    while let Ok((socket, _)) = listener.accept().await {
+        let peer = peer_to_string(&socket);
+
+
 
         if let Err(e) = server_state
-            .handle_connection(control_socket, &peer, port)
+            .handle_connection(socket, &peer, port)
             .await
         {
             println!("[{}] Connection handling failed: {}", peer, e);

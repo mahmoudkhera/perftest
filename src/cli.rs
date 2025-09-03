@@ -36,10 +36,11 @@ pub struct ClientArgs {
 
     /// disable nagle's algorithm   (read about nagle's algorithm and  how it delays the tcp stream )
     #[clap(short, long)]
-   pub  nagle: bool,
+    pub  nagle: bool,
 
-    // udp test 
-    
+    /// set the mss of tcp this only can be change in unix 
+    #[clap(short, long)]
+    pub mss:Option<i32>,  
     // #[clap(short,long)]
     // pub udp:bool
     //add new (features)

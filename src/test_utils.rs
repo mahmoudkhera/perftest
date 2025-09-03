@@ -33,6 +33,10 @@ pub struct TestParameters {
     pub client_version: String,
     pub no_delay: bool,
     pub socket_buffer: Option<usize>,
+
+    pub mss:Option<i32>
+
+
 }
 
 impl TestParameters {
@@ -53,6 +57,7 @@ impl TestParameters {
             client_version: env!("CARGO_PKG_VERSION").to_string(),
             no_delay: opts.nagle,
             socket_buffer: opts.socket_buffers,
+            mss:opts.mss
         }
     }
 }
