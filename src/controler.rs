@@ -238,6 +238,7 @@ impl Controller {
 
         #[cfg(unix)]
         if let Some(mss) = self.test.params.mss {
+            use crate::tcptest;
             tcptest::set_tcp_mss(&stream, mss as u32)?;
 
             let socket_mss = tcptest::get_tcp_mss(&stream)?;
@@ -273,9 +274,10 @@ impl Controller {
         debug!("Opening data stream to {}", address);
 
         let test_socket = TcpSocket::new_v4()?;
-            #[cfg(unix)]
-
+        #[cfg(unix)]
         if let Some(mss) = self.test.params.mss {
+            use crate::tcptest;
+
             tcptest::set_tcp_mss(&test_socket, mss as u32)?;
 
             let socket_mss = tcptest::get_tcp_mss(&test_socket)?;
