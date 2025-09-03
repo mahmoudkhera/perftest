@@ -62,7 +62,7 @@ impl Controller {
                     break;
                 }
             }
-            println!("stat after handle it is {:?}", self.test.get_state().await);
+            println!("state after handle it is {:?}", self.test.get_state().await);
 
             // Process messages based on role
             match self.test.role {

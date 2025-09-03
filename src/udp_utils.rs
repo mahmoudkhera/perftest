@@ -1,5 +1,5 @@
 
-// this feature not  add yet but comming soon
+// this feature not  added yet but comming soon
 
 
 
