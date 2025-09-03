@@ -4,7 +4,7 @@ use std::time::Duration;
 use crate::messages_handler::{
     ClientMessage, ServerMessage, TestResults, read_message, send_message,
 };
-use crate::tcptest::{StreamHandle, StreamMessage, StreamTester, get_tcp_mss, set_tcp_mss};
+use crate::tcptest::{StreamHandle, StreamMessage, StreamTester};
 use crate::test_utils::{Direction, Role};
 use crate::ui;
 use crate::{
@@ -236,15 +236,11 @@ impl Controller {
     async fn accept_stream(&mut self, stream: TcpStream) -> Result<()> {
         debug_assert_eq!(self.test.role, Role::Server);
 
-
-
-
-
-
+        #[cfg(unix)]
         if let Some(mss) = self.test.params.mss {
-            set_tcp_mss(&stream, mss as u32)?;
+            tcptest::set_tcp_mss(&stream, mss as u32)?;
 
-            let socket_mss = get_tcp_mss(&stream)?;
+            let socket_mss = tcptest::get_tcp_mss(&stream)?;
             debug!("mss {}   socket_mss {}", mss, socket_mss);
         }
 
@@ -276,17 +272,15 @@ impl Controller {
 
         debug!("Opening data stream to {}", address);
 
+        let test_socket = TcpSocket::new_v4()?;
+            #[cfg(unix)]
 
-        let test_socket=TcpSocket::new_v4()?;
+        if let Some(mss) = self.test.params.mss {
+            tcptest::set_tcp_mss(&test_socket, mss as u32)?;
 
-          if let Some(mss) = self.test.params.mss {
-           set_tcp_mss(&test_socket, mss as u32)?;
-
-            let socket_mss = get_tcp_mss(&test_socket)?;
+            let socket_mss = tcptest::get_tcp_mss(&test_socket)?;
             debug!("mss {}   socket_mss {}", mss, socket_mss);
         }
-
-        
 
         let mut data_stream = test_socket.connect(address.parse().unwrap()).await?;
 
