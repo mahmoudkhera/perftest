@@ -55,7 +55,8 @@ pub struct Commands {
     #[clap(short, long, default_value = "1")]
     pub interval: u16,
     ///debug level
-    pub debug:u8,
+     #[clap(short, long,)]
+    pub debug:Option<u8>,
 }
 #[derive( Debug, Parser)]
 #[clap(name="testperf", groups = [
