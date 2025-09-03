@@ -143,7 +143,7 @@ impl Controller {
         Ok(())
     }
     async fn process_internal_message(&mut self, message: ControllerMessage) -> Result<()> {
-        println!("process_internal_message");
+        debug!("process_internal_message");
         match message {
             ControllerMessage::CreateStream(stream) => {
                 self.accept_stream(stream).await?;
@@ -184,7 +184,7 @@ impl Controller {
 
     async fn process_server_message(&mut self, message: Result<ServerMessage>) -> Result<()> {
         let message = message?;
-        println!("process_server_message");
+        debug!("process_server_message");
 
         match message {
             ServerMessage::SetState(state) => {
@@ -225,7 +225,7 @@ impl Controller {
                 .connect_data_stream()
                 .await
                 .with_context(|| format!("Failed to create stream {}", stream_idx))?;
-            println!("done creating the data stream");
+            debug!("done creating the data stream");
             self.register_stream(stream)?;
         }
 
@@ -245,18 +245,18 @@ impl Controller {
             set_tcp_mss(&stream, mss as u32)?;
 
             let socket_mss = get_tcp_mss(&stream)?;
-            println!("mss {}   socket_mss {}", mss, socket_mss);
+            debug!("mss {}   socket_mss {}", mss, socket_mss);
         }
 
         let total_needed = self.calculate_total_streams();
-        println!("total streams {}", total_needed);
+
         let current_count = self.test.streams.len();
 
         // register the new stream
         //for the new stream test that came fro the client
         self.register_stream(stream)?;
 
-        println!("Stream accepted ({}/{})", current_count + 1, total_needed);
+        debug!("Stream accepted ({}/{})", current_count + 1, total_needed);
 
         // Check if we have all required streams
         if self.test.streams.len() == total_needed {
@@ -283,7 +283,7 @@ impl Controller {
            set_tcp_mss(&test_socket, mss as u32)?;
 
             let socket_mss = get_tcp_mss(&test_socket)?;
-            println!("mss {}   socket_mss {}", mss, socket_mss);
+            debug!("mss {}   socket_mss {}", mss, socket_mss);
         }
 
         
@@ -303,7 +303,7 @@ impl Controller {
 
         // Wait for welcome message
         let welcome_data_stream: ServerMessage = read_message(&mut data_stream).await?;
-        println!("{:?}", welcome_data_stream);
+        debug!("{:?}", welcome_data_stream);
 
         Ok(data_stream)
     }

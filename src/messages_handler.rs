@@ -1,6 +1,7 @@
 use crate::test_utils::TestParameters;
 use anyhow::{Context, Result, bail};
 use bytes::{BufMut, BytesMut};
+use log::debug;
 use serde::{Deserialize, Serialize,de::DeserializeOwned};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -99,7 +100,7 @@ where
     A: AsyncWriteExt + Unpin,
     T: Serialize + Debug,
 {
-    println!("the sent message{:?}", message);
+    debug!("the sent message{:?}", message);
     let payload = serde_json::to_vec(&message)?; // More efficient than to_string + as_bytes
     let payload_len = payload.len();
 
@@ -125,7 +126,6 @@ where
     A: AsyncReadExt + Unpin,
     T: DeserializeOwned,
 {
-    println!("try to read");
     let message_size = stream.read_u32().await?;
     if message_size > MAX_CONTROL_MESSAGE {
         bail!(

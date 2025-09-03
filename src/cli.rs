@@ -54,7 +54,8 @@ pub struct Commands {
     /// Seconds between periodic throughput reports
     #[clap(short, long, default_value = "1")]
     pub interval: u16,
-    //add the required commands
+    ///debug level
+    pub debug:u8,
 }
 #[derive( Debug, Parser)]
 #[clap(name="testperf", groups = [

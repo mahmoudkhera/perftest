@@ -9,7 +9,6 @@ use std::fmt::Debug;
 use std::io;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::TcpSocket;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::JoinHandle;
@@ -289,6 +288,8 @@ pub fn get_tcp_mss<T: AsRawFd>(socket: &T) -> io::Result<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::net::TcpSocket;
+
 
     #[tokio::test]
     async fn test_mss_set_correctly() {
@@ -399,7 +400,7 @@ mod tests {
             
         }
 
-        println!("✅ Set-Get cycle test passed for all values");
+        println!("Set-Get cycle test passed for all values");
     }
 
     #[test]
@@ -410,7 +411,7 @@ mod tests {
         // This should fail because we're testing on a connected socket
         // but it shows how you could test the functions themselves
 
-        println!("✅ Sync test structure verified");
+        println!(" Sync test structure verified");
     }
 }
 
