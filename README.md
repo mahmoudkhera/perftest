@@ -12,7 +12,7 @@ i decided to built again but in my own style for learning
 
 
 At first, I would like to thank [Eng. Ahmed Soliman](https://github.com/ahmedsoliman)
-for his excellent tutorial on [YouTube]([https://www.youtube.com/c/ahmedsoliman](https://youtube.com/playlist?list=PLald6EODoOJU0GMuYHlkS9MLhTPE7HiaT&si=KggPmyixF4vktXOi)) that helped me a lot,
+for his excellent tutorial on [YouTube](https://www.youtube.com/c/ahmedsoliman](https://youtube.com/playlist?list=PLald6EODoOJU0GMuYHlkS9MLhTPE7HiaT&si=KggPmyixF4vktXOi)) that helped me a lot,
 and for his reverse engineering repo for i perf3 , which inspired me to write my own network performance tool.
 Since I was learning, I decided to rebuild the tool in my own style as part of my learning journey.
 
