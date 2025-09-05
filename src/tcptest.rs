@@ -347,7 +347,7 @@ pub fn get_tcp_mss<T: AsRawFd>(socket: &T) -> io::Result<u32> {
         Err(io::Error::last_os_error())
     }
 }
-
+#[cfg(unix)]
 pub  fn configure_tcp_mss<T: AsRawFd>(stream: &T, mss: u32) -> std::io::Result<()> {
 
         set_tcp_mss(stream, mss)?;
