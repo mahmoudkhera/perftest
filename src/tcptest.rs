@@ -55,7 +55,7 @@ impl StreamTester {
         let mut buffer = vec![0u8; block_size];
 
         if self.is_sending {
-            fill_random(&mut buffer, self.params.block_size).await;
+            fill_random(&mut buffer, self.params.block_size).await?;
         }
 
         self.configure_stream_socket()?;
@@ -210,7 +210,8 @@ impl StreamTester {
 
 async fn fill_random(buffer: &mut [u8], length: usize) -> Result<()> {
     #[cfg(unix)]
-    {
+    {   
+        let _=length;
         let mut random = tokio::fs::File::open("/dev/urandom").await?;
         let _ = random.read_exact(buffer).await?;
 
@@ -347,6 +348,17 @@ pub fn get_tcp_mss<T: AsRawFd>(socket: &T) -> io::Result<u32> {
     }
 }
 
+pub  fn configure_tcp_mss<T: AsRawFd>(stream: &T, mss: u32) -> std::io::Result<()> {
+
+        set_tcp_mss(stream, mss)?;
+
+        // read back from the socket to confirm
+        let socket_mss = get_tcp_mss(stream)?;
+        log::debug!("Requested MSS: {}, Actual MSS: {}", mss, socket_mss);
+
+        Ok(())
+    }
+
 #[cfg(test)]
 #[cfg(unix)]
 
@@ -473,4 +485,3 @@ mod tests {
     }
 }
 
-// Simple test runner function

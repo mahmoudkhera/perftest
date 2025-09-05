@@ -239,10 +239,8 @@ impl Controller {
         #[cfg(unix)]
         if let Some(mss) = self.test.params.mss {
             use crate::tcptest;
-            tcptest::set_tcp_mss(&stream, mss as u32)?;
 
-            let socket_mss = tcptest::get_tcp_mss(&stream)?;
-            debug!("mss {}   socket_mss {}", mss, socket_mss);
+           tcptest::configure_tcp_mss(&stream, mss as u32)?;
         }
 
         let total_needed = self.calculate_total_streams();
@@ -274,15 +272,13 @@ impl Controller {
         debug!("Opening data stream to {}", address);
 
         let test_socket = TcpSocket::new_v4()?;
-        #[cfg(unix)]
+          #[cfg(unix)]
         if let Some(mss) = self.test.params.mss {
             use crate::tcptest;
 
-            tcptest::set_tcp_mss(&test_socket, mss as u32)?;
-
-            let socket_mss = tcptest::get_tcp_mss(&test_socket)?;
-            debug!("mss {}   socket_mss {}", mss, socket_mss);
+           tcptest::configure_tcp_mss(&test_socket, mss as u32)?;
         }
+
 
         let mut data_stream = test_socket.connect(address.parse().unwrap()).await?;
 
@@ -448,4 +444,6 @@ impl Controller {
 
         Ok(remote_results)
     }
+
+    
 }
