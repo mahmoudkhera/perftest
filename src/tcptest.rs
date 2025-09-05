@@ -208,11 +208,13 @@ impl StreamTester {
     }
 }
 
-async fn fill_random(buffer: &mut [u8], length: usize) {
+async fn fill_random(buffer: &mut [u8], length: usize) -> Result<()> {
     #[cfg(unix)]
     {
         let mut random = tokio::fs::File::open("/dev/urandom").await?;
-        let count = random.read_exact(&mut buffer).await?;     
+        let _ = random.read_exact(buffer).await?;
+
+        Ok(())
     }
 
     #[cfg(windows)]
@@ -268,8 +270,9 @@ async fn fill_random(buffer: &mut [u8], length: usize) {
                 panic!("CryptGenRandom failed");
             }
         }
-    }
 
+        Ok(())
+    }
 }
 
 #[cfg(unix)]
