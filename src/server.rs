@@ -63,7 +63,7 @@ impl ServerState {
         peer: &str,
         port: u16,
     ) -> Result<()> {
-        // not that  at the first the test in flight is weak at first
+        // note that  at the first the test in flight is weak at first
         //because there is no test already
 
         match self.in_flight_test.upgrade() {
